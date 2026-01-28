@@ -81,34 +81,26 @@ def main():
     # Process PCA
     features = patch_tokens[0].cpu().numpy() # [N, D]
     
-    # PCA
-    print("Computing PCA...")
-    # 2. Skip non-spatial tokens (CLS + Storage Tokens)
-    n_non_spatial = 1 + model.backbone.n_storage_tokens
-    print(f"Model has {model.backbone.n_storage_tokens} storage tokens. Skipping {n_non_spatial} tokens total.")
-    
-    spatial_features = features[n_non_spatial:]
-    
-    # 3. Compute PCA on spatial tokens only
+    # Compute PCA
     print("Computing PCA on spatial tokens...")
     pca = PCA(n_components=3)
-    pca_features = pca.fit_transform(spatial_features)
+    pca_features = pca.fit_transform(features)
     
-    # 4. Percentile Clipping (Removes outliers that wash out colors)
+    # 1. Percentile Clipping (Removes outliers that wash out colors)
     v_min = np.percentile(pca_features, 1, axis=0)
     v_max = np.percentile(pca_features, 99, axis=0)
     pca_features = np.clip(pca_features, v_min, v_max)
     
-    # 5. Min-Max Normalize to [0, 1] for RGB
+    # 2. Min-Max Normalize to [0, 1] for RGB
     pca_features = (pca_features - pca_features.min(0)) / (pca_features.max(0) - pca_features.min(0))
     
-    # Reshape to image
+    # 3. Reshape to image
     h_grid = args.resolution // args.patch_size
     w_grid = args.resolution // args.patch_size
     
-    if h_grid * w_grid != spatial_features.shape[0]:
-        print(f"Warning: Token count mismatch! Grid: {h_grid*w_grid}, Features: {spatial_features.shape[0]}.")
-        grid_size = int(np.sqrt(spatial_features.shape[0]))
+    if h_grid * w_grid != features.shape[0]:
+        print(f"Warning: Token count mismatch! Grid: {h_grid*w_grid}, Features: {features.shape[0]}.")
+        grid_size = int(np.sqrt(features.shape[0]))
         h_grid, w_grid = grid_size, grid_size
         
     pca_image = pca_features[:h_grid*w_grid].reshape(h_grid, w_grid, 3)
