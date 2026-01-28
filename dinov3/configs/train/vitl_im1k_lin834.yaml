@@ -71,14 +71,14 @@ student:
   proj_bias: true
   ffn_bias: true
   norm_layer: layernorm
-  n_storage_tokens: 0
+  n_storage_tokens: 4
   mask_k_bias: false
   in_chans: 3
   pos_embed_type: rope
   pos_embed_rope_base: 100.0
   pos_embed_rope_min_period: null
   pos_embed_rope_max_period: null
-  pos_embed_rope_normalize_coords: separate  # min, max, separate
+  pos_embed_rope_normalize_coords: separate  # min, max, separatep
   pos_embed_rope_shift_coords: null
   pos_embed_rope_jitter_coords: null
   pos_embed_rope_rescale_coords: 2
