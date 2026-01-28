@@ -26,14 +26,28 @@ def main():
     print(f"Building model from {args.checkpoint}...")
     model_loaded = build_model_for_eval(cfg, pretrained_weights=args.checkpoint)
 
-    # 3. Compare weights of a specific layer (e.g., first block attention)
-    # We grab the keys from the state dict to be safe
-    key = "backbone.blocks.0.attn.qkv.weight"
+    # 3. Compare weights of a specific layer
+    # Dynamically find a key that exists in both
+    rand_keys = set(model_random.state_dict().keys())
+    load_keys = set(model_loaded.state_dict().keys())
+    common_keys = list(rand_keys.intersection(load_keys))
+    
+    if not common_keys:
+        print("ERROR: No common keys found between random and loaded models!")
+        print("Random keys sample:", list(rand_keys)[:5])
+        print("Loaded keys sample:", list(load_keys)[:5])
+        return
+
+    # Pick a weight matrix, ideally from a block
+    key = next((k for k in common_keys if "blocks.0.attn.qkv.weight" in k), None)
+    if key is None:
+        key = next((k for k in common_keys if "weight" in k), common_keys[0])
+    
+    print(f"Comparing key: {key}")
     
     rand_weight = model_random.state_dict()[key]
     load_weight = model_loaded.state_dict()[key]
 
-    print(f"\nComparing layer: {key}")
     print(f"Random Weight Mean: {rand_weight.mean().item():.6f}, Std: {rand_weight.std().item():.6f}")
     print(f"Loaded Weight Mean: {load_weight.mean().item():.6f}, Std: {load_weight.std().item():.6f}")
 
