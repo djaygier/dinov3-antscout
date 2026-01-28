@@ -10,7 +10,7 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 from dinov3.models import build_model_for_eval
-from dinov3.configs import setup_config
+from dinov3.configs import setup_config, DinoV3SetupArgs
 import dinov3.distributed as distributed
 
 def get_args():
