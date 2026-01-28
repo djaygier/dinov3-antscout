@@ -27,7 +27,6 @@ def load_model(checkpoint_path, img_size):
     # though dinov3 handles variable sizes via ROPE.
     model = dinov3_vitl16(
         pretrained=False,
-        img_size=img_size, # This hints the ROPE grid size
     )
     model.eval()
     model.cuda()
