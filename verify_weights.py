@@ -48,13 +48,13 @@ def main():
     
     print(f"Comparing key: {key}")
     
-    rand_weight = model_random.state_dict()[key]
-    load_weight = model_loaded.state_dict()[key]
+    rand_weight = model_random.state_dict()[key].cpu()
+    load_weight = model_loaded.state_dict()[key].cpu()
 
     print(f"Random Weight Mean: {rand_weight.mean().item():.6f}, Std: {rand_weight.std().item():.6f}")
     print(f"Loaded Weight Mean: {load_weight.mean().item():.6f}, Std: {load_weight.std().item():.6f}")
 
-    if torch.equal(rand_weight, load_weight):
+    if torch.allclose(rand_weight, load_weight, atol=1e-7):
         print("\n[CRITICAL] The loaded weights are IDENTICAL to random initialization!")
         print("Conclusion: The checkpoint loading FAILED silently.")
     else:
