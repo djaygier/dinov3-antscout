@@ -306,6 +306,9 @@ class SSLMetaArch(nn.Module):
         self.ibot_patch_loss.init_weights()
         self.model_ema.load_state_dict(self.student.state_dict())
         if self.has_gram_teacher:
+            # Initialize weights before loading from checkpoint to avoid NaNs from meta-device junk
+            for m in self.gram_teacher.values():
+                m.init_weights()
             if self.gram_ckpt is not None:
                 logger.info(f"Loading pretrained weights from {self.gram_ckpt}")
                 init_fsdp_model_from_checkpoint(
@@ -650,20 +653,23 @@ class SSLMetaArch(nn.Module):
 
         # Gram loss
         if self.gram_use_loss:
-            gram_loss = self.gram_loss(
-                gram_global["student_patches"],
-                gram_global["teacher_patches"],
-                img_level=self.gram_img_level,
-            )
-
             if self.gram_loss_schedule is not None:
                 gram_loss_weight = self.gram_loss_schedule[iteration]
             else:
                 gram_loss_weight = self.gram_loss_weight
 
             loss_dict["gram_loss_weight"] = gram_loss_weight
-            loss_accumulator += gram_loss * gram_loss_weight
-            loss_dict["gram_loss"] = gram_loss
+
+            if gram_loss_weight > 0:
+                gram_loss = self.gram_loss(
+                    gram_global["student_patches"],
+                    gram_global["teacher_patches"],
+                    img_level=self.gram_img_level,
+                )
+                loss_accumulator += gram_loss * gram_loss_weight
+                loss_dict["gram_loss"] = gram_loss
+            else:
+                loss_dict["gram_loss"] = 0.0
 
             if self.gram_compute_stats:
                 with torch.no_grad():

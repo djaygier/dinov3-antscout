@@ -81,4 +81,7 @@ class GramLoss(nn.Module):
             target_sim[target_sim < 0] = 0.0
             student_sim[(student_sim < 0) & (target_sim < 0)] = 0.0
 
+        if torch.isnan(student_sim).any() or torch.isnan(target_sim).any():
+            return student_sim.new_tensor(0.0, requires_grad=True)
+
         return self.mse_loss(student_sim, target_sim)
