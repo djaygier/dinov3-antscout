@@ -31,7 +31,9 @@ def load_model(checkpoint_path, config_file, use_student=False):
     distributed.enable()
     
     # 1. Setup Config
-    cfg = setup_config(config_file, [])
+    print(f"Loading config from: {config_file}")
+    setup_args = DinoV3SetupArgs(config_file=config_file)
+    cfg = setup_config(setup_args)
     
     # 2. Build model for eval
     print(f"Building model from config: {config_file}")
