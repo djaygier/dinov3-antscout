@@ -38,7 +38,7 @@ def main():
     
     # 3. Load sharded weights
     print(f"Loading sharded weights from {args.src}...")
-    load_checkpoint(args.src, model)
+    load_checkpoint(args.src, model=model)
     
     # 4. Extract Teacher EMA state dict
     teacher_state_dict = model.model_ema.state_dict()
