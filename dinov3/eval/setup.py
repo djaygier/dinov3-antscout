@@ -21,6 +21,8 @@ class ModelConfig:
     pretrained_weights: str | None = None
     # Loading a DINOv3 or v2 model from torch.hub
     dino_hub: str | None = None
+    # Additional model options (overrides)
+    opts: list[str] = field(default_factory=list)
 
 
 class BaseModelContext(TypedDict):
@@ -47,6 +49,7 @@ def load_model_and_context(model_config: ModelConfig, output_dir: str) -> tuple[
             config_file=model_config.config_file,
             pretrained_weights=model_config.pretrained_weights,
             output_dir=output_dir,
+            opts=model_config.opts,
         )
 
     model.cuda()

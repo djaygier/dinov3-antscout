@@ -8,7 +8,7 @@ import os
 from typing import Any
 
 import torch
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 import dinov3.distributed
 from dinov3.eval import results
@@ -41,7 +41,32 @@ def args_dict_to_dataclass(eval_args: dict[str, object], config_dataclass, save_
     else:
         eval_args_config = OmegaConf.create(eval_args)
 
-    structured_config = OmegaConf.merge(OmegaConf.structured(config_dataclass), eval_args_config)
+    # Automatically move unknown keys to model.opts if they look like model config
+    structured_base = OmegaConf.structured(config_dataclass)
+    known_keys = set(structured_base.keys())
+    
+    # We use a copy of the keys because we'll be modifying the dict
+    for key in list(eval_args_config.keys()):
+        if key not in known_keys and key not in ("model", "train", "eval", "transform", "few_shot", "output_dir", "save_results"):
+            # This looks like an override meant for the model config (e.g. 'student.fp8_enabled')
+            val = eval_args_config.pop(key)
+            # Reconstruct the string for model.opts
+            if isinstance(val, (dict, DictConfig)):
+                # Flatten nested dicts for opts (e.g. {'student': {'fp8_enabled': True}} -> 'student.fp8_enabled=True')
+                def flatten(d, prefix=""):
+                    items = []
+                    for k, v in d.items():
+                        new_key = f"{prefix}.{k}" if prefix else k
+                        if isinstance(v, (dict, DictConfig)):
+                            items.extend(flatten(v, new_key))
+                        else:
+                            items.append(f"{new_key}={v}")
+                    return items
+                eval_args_config.setdefault("model", {}).setdefault("opts", []).extend(flatten(val, key))
+            else:
+                eval_args_config.setdefault("model", {}).setdefault("opts", []).append(f"{key}={val}")
+
+    structured_config = OmegaConf.merge(structured_base, eval_args_config)
     logger.info(f"Evaluation Configuration:\n{OmegaConf.to_yaml(structured_config)}")
     output_dir = structured_config.output_dir
 
