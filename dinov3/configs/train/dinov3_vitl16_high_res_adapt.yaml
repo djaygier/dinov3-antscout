@@ -159,30 +159,10 @@ crops:
   local_crops_scale:
   - 0.05
   - 0.32
-  global_crops_size:
-  - 512
-  - 768
-  - 768
-  - 768
-  - 768
-  local_crops_size:
-  - 112
-  - 112
-  - 168
-  - 224
-  - 336
-  global_local_crop_pairs_ratios:
-  - 0.3
-  - 0.3
-  - 0.3
-  - 0.05
-  - 0.05
-  gram_teacher_crops_size:
-  - 768
-  - 1152
-  - 1152
-  - 1152
-  - 1152
+  global_crops_size: 448
+  local_crops_size: 112
+  global_local_crop_pairs_ratios: 1.0
+  gram_teacher_crops_size: 672
   localcrops_subset_of_globalcrops: false
   share_color_jitter: false
   horizontal_flips: false
