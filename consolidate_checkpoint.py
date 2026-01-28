@@ -5,6 +5,7 @@ from pathlib import Path
 from dinov3.checkpointer import load_checkpoint
 from dinov3.train.ssl_meta_arch import SSLMetaArch
 from dinov3.configs import setup_config
+import dinov3.distributed as distributed
 
 def get_args():
     parser = argparse.ArgumentParser(description="Consolidate Sharded Checkpoint")
@@ -15,6 +16,9 @@ def get_args():
 
 def main():
     args = get_args()
+    
+    # 0. Initialize distributed mode (required for setup_config)
+    distributed.enable()
     
     # 1. Setup config
     output_dir = Path("tmp_consolidate")
