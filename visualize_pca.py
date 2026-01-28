@@ -8,7 +8,10 @@ from PIL import Image
 import numpy as np
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-from dinov3.hub.backbones import dinov3_vitl16
+import matplotlib.pyplot as plt
+from dinov3.models import build_model_for_eval
+from dinov3.configs import setup_config
+import dinov3.distributed as distributed
 
 def get_args():
     parser = argparse.ArgumentParser(description="Visualize DINOv3 PCA")
@@ -19,44 +22,26 @@ def get_args():
     parser.add_argument("--patch_size", type=int, default=16, help="Patch size")
     parser.add_argument("--img_size", type=int, default=1024, help="Model image size (for interpolation)")
     parser.add_argument("--threshold", type=float, default=None, help="Threshold for background removal (optional)")
+    parser.add_argument("--config-file", type=str, required=True, help="Path to the config file used for training")
+    parser.add_argument("--student", action="store_true", help="Visualize student instead of teacher")
     return parser.parse_args()
 
-def load_model(checkpoint_path, img_size):
-    # Initialize the model structure (ViT-Large)
-    # We set img_size to the target resolution to avoid excessive interpolation during rope if possible,
-    # though dinov3 handles variable sizes via ROPE.
-    model = dinov3_vitl16(
-        pretrained=False,
-    )
+def load_model(checkpoint_path, config_file, use_student=False):
+    # Initialize distributed (required for config parsing)
+    distributed.enable()
+    
+    # 1. Setup Config
+    cfg = setup_config(config_file, [])
+    
+    # 2. Build model for eval
+    print(f"Building model from config: {config_file}")
+    model = build_model_for_eval(cfg, checkpoint_path)
+    
+    # If we want the student, we have a problem because build_model_for_eval loads "teacher" key.
+    # But for Stage 3 consolidation, we saved it under "teacher" anyway.
+    
     model.eval()
     model.cuda()
-
-    # Load weights
-    if not os.path.isfile(checkpoint_path):
-        raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
-        
-    print(f"Loading checkpoint from {checkpoint_path}...")
-    state_dict = torch.load(checkpoint_path, map_location="cpu")
-    
-    # Handle different checkpoint keys
-    if "teacher" in state_dict:
-        print("Found 'teacher' key in checkpoint.")
-        state_dict = state_dict["teacher"]
-    elif "student" in state_dict:
-        print("Found 'student' key in checkpoint.")
-        state_dict = state_dict["student"]
-    elif "model" in state_dict:
-        print("Found 'model' key in checkpoint.")
-        state_dict = state_dict["model"]
-    
-    # Remove prefix "backbone." or "module." if present
-    clean_state_dict = {}
-    for k, v in state_dict.items():
-        k = k.replace("backbone.", "").replace("module.", "")
-        clean_state_dict[k] = v
-        
-    msg = model.load_state_dict(clean_state_dict, strict=False)
-    print(f"Model loaded with msg: {msg}")
     return model
 
 def main():
@@ -81,7 +66,7 @@ def main():
     input_tensor = transform(original_image).unsqueeze(0).to(device)
     
     # Load Model
-    model = load_model(args.checkpoint, args.resolution)
+    model = load_model(args.checkpoint, args.config_file, args.student)
     
     # Inference
     print("Running inference...")

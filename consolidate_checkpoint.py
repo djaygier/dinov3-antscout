@@ -45,20 +45,22 @@ def main():
     load_checkpoint(args.src, model=model)
     
     # 4. Extract Teacher EMA state dict
-    teacher_state_dict = model.model_ema.state_dict()
-    
-    consolidated_dict = {}
-    for k, v in teacher_state_dict.items():
-        if hasattr(v, "full_tensor"):
-            consolidated_dict[k] = v.full_tensor()
-        else:
-            consolidated_dict[k] = v
-
-    # 5. Save consolidated file
+    print("Extracting Teacher (EMA) backbone...")
+    teacher_state_dict = model.teacher.backbone.state_dict()
     dst_path = Path(args.dst)
     dst_path.parent.mkdir(parents=True, exist_ok=True)
-    print(f"Saving consolidated teacher to {dst_path}...")
-    torch.save({"teacher": consolidated_dict}, dst_path)
+    torch.save({"teacher": teacher_state_dict}, dst_path)
+
+    # 5. Extract Student state dict
+    print("Extracting Student backbone...")
+    student_state_dict = model.student.backbone.state_dict()
+    student_dst = dst_path.parent / dst_path.name.replace("teacher", "student")
+    if student_dst == dst_path:
+         student_dst = dst_path.parent / (dst_path.stem + "_student" + dst_path.suffix)
+    torch.save({"teacher": student_state_dict}, student_dst)
+
+    print(f"Saved Teacher to: {dst_path}")
+    print(f"Saved Student to: {student_dst}")
     print("Done!")
 
 if __name__ == "__main__":
