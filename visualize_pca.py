@@ -33,7 +33,7 @@ def load_model(checkpoint_path, config_file, use_student=False):
     # 1. Setup Config
     print(f"Loading config from: {config_file}")
     setup_args = DinoV3SetupArgs(config_file=config_file)
-    cfg = setup_config(setup_args)
+    cfg = setup_config(setup_args, strict_cfg=False)
     
     # 2. Build model for eval
     print(f"Building model from config: {config_file}")
