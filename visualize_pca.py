@@ -110,7 +110,7 @@ def main():
     
     # Upscale to output resolution
     pca_tensor = torch.from_numpy(pca_image).permute(2, 0, 1).unsqueeze(0).float() # [1, 3, grid, grid]
-    pca_output = F.interpolate(pca_tensor, size=(args.resolution, args.resolution), mode='bilinear', align_corners=False)
+    pca_output = F.interpolate(pca_tensor, size=(args.resolution, args.resolution), mode='nearest')
     pca_output = pca_output.squeeze(0).permute(1, 2, 0).numpy()
     
     # Plotting
