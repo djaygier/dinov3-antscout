@@ -20,7 +20,7 @@ def main():
     # 2. Initialize TWO models
     # Model A: Random init
     print("Building random model...")
-    model_random, _ = build_model_for_eval(cfg, pretrained_weights=None)
+    model_random = build_model_for_eval(cfg, pretrained_weights=None)
     
     # Model B: Loaded from checkpoint
     print(f"Building model from {args.checkpoint}...")
