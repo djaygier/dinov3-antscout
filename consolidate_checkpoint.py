@@ -44,22 +44,34 @@ def main():
     print(f"Loading sharded weights from {args.src} into CPU model...")
     load_checkpoint(args.src, model=model)
     
-    # 4. Extract Teacher EMA state dict
-    print("Extracting Teacher (EMA) backbone...")
-    teacher_state_dict = model.teacher.backbone.state_dict()
+    # 4. Extract Teacher EMA state dict (matches official do_test format)
+    print("Extracting Teacher (EMA) - full state dict like official checkpoints...")
+    from torch.distributed._tensor import DTensor
+    
+    # model.teacher is the model_ema (see ssl_meta_arch.py line 131)
+    new_state_dict = model.teacher.state_dict()
+    
+    # Handle DTensors from FSDP (same as official do_test)
+    for k, tensor in list(new_state_dict.items()):
+        if isinstance(tensor, DTensor):
+            new_state_dict[k] = tensor.full_tensor()
+    
     dst_path = Path(args.dst)
     dst_path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"teacher": teacher_state_dict}, dst_path)
+    torch.save({"teacher": new_state_dict}, dst_path)
+    print(f"Saved Teacher to: {dst_path}")
 
-    # 5. Extract Student state dict
-    print("Extracting Student backbone...")
-    student_state_dict = model.student.backbone.state_dict()
+    # 5. Extract Student state dict (same format)
+    print("Extracting Student...")
+    student_state_dict = model.student.state_dict()
+    for k, tensor in list(student_state_dict.items()):
+        if isinstance(tensor, DTensor):
+            student_state_dict[k] = tensor.full_tensor()
+    
     student_dst = dst_path.parent / dst_path.name.replace("teacher", "student")
     if student_dst == dst_path:
          student_dst = dst_path.parent / (dst_path.stem + "_student" + dst_path.suffix)
     torch.save({"teacher": student_state_dict}, student_dst)
-
-    print(f"Saved Teacher to: {dst_path}")
     print(f"Saved Student to: {student_dst}")
     print("Done!")
 
