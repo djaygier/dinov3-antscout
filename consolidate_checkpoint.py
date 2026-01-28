@@ -33,11 +33,15 @@ def main():
     cfg = setup_config(DummyArgs(args.config, output_dir), strict_cfg=False)
     
     # 2. Build model structure
-    print("Building model structure...")
+    print("Building model structure (initially on meta device)...")
     model = SSLMetaArch(cfg)
     
+    # Materialize meta tensors on CPU before loading
+    print("Materializing model on CPU...")
+    model.to_empty(device="cpu")
+    
     # 3. Load sharded weights
-    print(f"Loading sharded weights from {args.src}...")
+    print(f"Loading sharded weights from {args.src} into CPU model...")
     load_checkpoint(args.src, model=model)
     
     # 4. Extract Teacher EMA state dict
