@@ -21,6 +21,9 @@ def main():
     # Model A: Random init
     print("Building random model...")
     model_random = build_model_for_eval(cfg, pretrained_weights=None)
+    model_random.to_empty(device="cpu")
+    model_random.init_weights()
+    # Ensure loaded model is also on CPU for comparison
     
     # Model B: Loaded from checkpoint
     print(f"Building model from {args.checkpoint}...")
