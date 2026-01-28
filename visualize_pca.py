@@ -98,9 +98,9 @@ def main():
     h_grid = args.resolution // args.patch_size
     w_grid = args.resolution // args.patch_size
     
-    if h_grid * w_grid != features.shape[0]:
-        print(f"Warning: Token count mismatch! Grid: {h_grid*w_grid}, Features: {features.shape[0]}.")
-        grid_size = int(np.sqrt(features.shape[0]))
+    if h_grid * w_grid != spatial_features.shape[0]:
+        print(f"Warning: Token count mismatch! Grid: {h_grid*w_grid}, Features: {spatial_features.shape[0]}.")
+        grid_size = int(np.sqrt(spatial_features.shape[0]))
         h_grid, w_grid = grid_size, grid_size
         
     pca_image = pca_features[:h_grid*w_grid].reshape(h_grid, w_grid, 3)
