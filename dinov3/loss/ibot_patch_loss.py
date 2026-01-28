@@ -69,7 +69,7 @@ class iBOTPatchLoss(nn.Module):
         self.len_teacher_patch_tokens = None
         self.async_batch_center = None
         self.sinkhorn_knopp_teacher = SinkhornKnoppTeacher()
-        self.sinkhorn_knopp_teacher.compile()
+        # self.sinkhorn_knopp_teacher.compile()
 
     def init_weights(self) -> None:
         self.center.zero_()
