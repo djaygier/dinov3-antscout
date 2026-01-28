@@ -86,17 +86,31 @@ def main():
     pca = PCA(n_components=3)
     pca_features = pca.fit_transform(features)
     
-    # Min-Max Normalize to [0, 1] for RGB
+    # 1. Percentile Clipping (Removes outliers that wash out colors)
+    # We clip the top/bottom 1% to make colors more vibrant
+    v_min = np.percentile(pca_features, 1, axis=0)
+    v_max = np.percentile(pca_features, 99, axis=0)
+    pca_features = np.clip(pca_features, v_min, v_max)
+    
+    # 2. Min-Max Normalize to [0, 1] for RGB
     pca_features = (pca_features - pca_features.min(0)) / (pca_features.max(0) - pca_features.min(0))
     
     # Reshape to image
-    # N = H_grid * W_grid
-    grid_size = int(np.sqrt(features.shape[0]))
-    pca_image = pca_features.reshape(grid_size, grid_size, 3)
+    # We calculate H, W from the input resolution and patch size
+    h_grid = args.resolution // args.patch_size
+    w_grid = args.resolution // args.patch_size
+    
+    # In case of mismatch (e.g. storage tokens or unexpected N)
+    if h_grid * w_grid != features.shape[0]:
+        print(f"Warning: Grid size mismatch! Expected {h_grid*w_grid} tokens, got {features.shape[0]}.")
+        grid_size = int(np.sqrt(features.shape[0]))
+        h_grid, w_grid = grid_size, grid_size
+        
+    pca_image = pca_features[:h_grid*w_grid].reshape(h_grid, w_grid, 3)
     
     # Upscale to output resolution
     pca_tensor = torch.from_numpy(pca_image).permute(2, 0, 1).unsqueeze(0).float() # [1, 3, grid, grid]
-    pca_output = F.interpolate(pca_tensor, size=(args.resolution, args.resolution), mode='nearest')
+    pca_output = F.interpolate(pca_tensor, size=(args.resolution, args.resolution), mode='bilinear', align_corners=False)
     pca_output = pca_output.squeeze(0).permute(1, 2, 0).numpy()
     
     # Plotting
