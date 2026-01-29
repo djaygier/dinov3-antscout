@@ -133,7 +133,7 @@ crops:
   share_color_jitter: false
   horizontal_flips: true
 evaluation:
-  eval_period_iterations: 4000
+  eval_period_iterations: 1500
   low_freq_every: 5
   config_files:
     high_freq: benchmark_high_frequency.yaml
