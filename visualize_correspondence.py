@@ -39,7 +39,7 @@ def main():
 
     # Load config and model
     print(f"Loading config from: {args.config_file}")
-    cfg = setup_config(argparse.Namespace(config_file=args.config_file, opts=[]), strict_cfg=False)
+    cfg = setup_config(argparse.Namespace(config_file=args.config_file, opts=[], output_dir=None), strict_cfg=False)
     print(f"Building model...")
     model = build_model_for_eval(cfg, args.checkpoint)
     model.eval()
