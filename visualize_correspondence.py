@@ -73,13 +73,28 @@ def main():
         query_feat = features_grid[query_y, query_x]  # [D]
         # Cosine similarity (features are already normalized)
         sim = torch.einsum("d,hwd->hw", query_feat, features_grid).cpu().numpy()
-        return sim
+        
+        # Auto-scale for visibility: 
+        # Typically features might have low absolute variance.
+        # We normalize the heatmap to [0, 1] based on its own distribution.
+        sim_min = sim.min()
+        sim_max = sim.max()
+        sim_norm = (sim - sim_min) / (sim_max - sim_min + 1e-8)
+        
+        # 2nd option: Heatmap of standard deviations or just raw sim with percentile clipping
+        v_min = np.percentile(sim, 2)
+        v_max = np.percentile(sim, 98)
+        sim_clipped = np.clip(sim, v_min, v_max)
+        sim_clipped = (sim_clipped - v_min) / (v_max - v_min + 1e-8)
+        
+        print(f"Similarity stats: Min={sim_min:.4f}, Max={sim_max:.4f}, Mean={sim.mean():.4f}")
+        return sim_norm, sim_clipped
     
     def visualize(query_y, query_x, save_path=None):
         """Create visualization with query point and similarity heatmap."""
-        sim_map = compute_similarity_map(query_y, query_x)
+        sim_norm, sim_clipped = compute_similarity_map(query_y, query_x)
         
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        fig, axes = plt.subplots(1, 4, figsize=(20, 5))
         
         # Original image
         axes[0].imshow(img.resize((args.resolution, args.resolution)))
@@ -90,22 +105,30 @@ def main():
         axes[0].set_title(f"Query Point ({query_x}, {query_y})")
         axes[0].axis('off')
         
-        # Similarity heatmap
-        im = axes[1].imshow(sim_map, cmap='hot', vmin=0, vmax=1)
+        # Similarity heatmap (Full Range)
+        im1 = axes[1].imshow(sim_norm, cmap='magma')
         axes[1].scatter([query_x], [query_y], c='cyan', s=50, marker='x', linewidths=2)
-        axes[1].set_title("Feature Similarity (cosine)")
+        axes[1].set_title("Similarity (Min-Max Scaled)")
         axes[1].axis('off')
-        plt.colorbar(im, ax=axes[1], fraction=0.046)
+        plt.colorbar(im1, ax=axes[1], fraction=0.046)
         
-        # Overlay on image
-        sim_upscaled = np.array(Image.fromarray((sim_map * 255).astype(np.uint8)).resize(
+        # Similarity heatmap (Robust Percentile Scaled)
+        im2 = axes[2].imshow(sim_clipped, cmap='magma')
+        axes[2].scatter([query_x], [query_y], c='cyan', s=50, marker='x', linewidths=2)
+        axes[2].set_title("Similarity (Robust 2-98%)")
+        axes[2].axis('off')
+        plt.colorbar(im2, ax=axes[2], fraction=0.046)
+        
+        # Overlay on image (using robust map)
+        sim_upscaled = np.array(Image.fromarray((sim_clipped * 255).astype(np.uint8)).resize(
             (args.resolution, args.resolution), Image.BILINEAR)) / 255.0
         img_np = np.array(img.resize((args.resolution, args.resolution))) / 255.0
-        overlay = img_np * 0.3 + plt.cm.hot(sim_upscaled)[:,:,:3] * 0.7
-        axes[2].imshow(overlay)
-        axes[2].scatter([img_x], [img_y], c='cyan', s=100, marker='x', linewidths=3)
-        axes[2].set_title("Overlay")
-        axes[2].axis('off')
+        # Use a more visible overlay
+        overlay = img_np * 0.4 + plt.cm.magma(sim_upscaled)[:,:,:3] * 0.6
+        axes[3].imshow(overlay)
+        axes[3].scatter([img_x], [img_y], c='cyan', s=100, marker='x', linewidths=3)
+        axes[3].set_title("Overlay (Robust)")
+        axes[3].axis('off')
         
         plt.tight_layout()
         if save_path:
